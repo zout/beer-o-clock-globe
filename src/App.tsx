@@ -153,10 +153,10 @@ function App() {
       // Handle time range properly (including cross-midnight ranges)
       if (startHour <= endHour) {
         // Normal range (e.g., 9-17 for 9 AM to 5 PM)
-        return hour >= startHour && hour <= endHour
+        return hour >= startHour && hour < endHour
       } else {
         // Cross-midnight range (e.g., 22-02 for 10 PM to 2 AM)
-        return hour >= startHour || hour <= endHour
+        return hour >= startHour || hour < endHour
       }
     } catch (error) {
       console.error(`Error checking time for ${timezone}:`, error)
