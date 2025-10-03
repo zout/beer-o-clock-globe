@@ -1,0 +1,42 @@
+# Node / Vite / TypeScript
+node_modules/
+dist/
+build/
+.tmp/
+.temp/
+.cache/
+.vite/
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Test coverage
+coverage/
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*.orig
+
+# Local certificates/keys
+*.pem
+*.key
+
+# Misc
+# lockfiles are allowed; comment out to ignore a specific one
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
