@@ -23,6 +23,7 @@ body {
 .beer-globe {
   flex: 1;
   position: relative;
+  z-index: 1; /* ensure globe stays below UI panels */
   background: radial-gradient(ellipse at center, #2c1810 0%, #1a0f08 100%);
 }
 
@@ -41,19 +42,28 @@ body {
   position: absolute;
   top: 20px;
   left: 20px;
-  z-index: 10;
+  z-index: 1000;
   background: linear-gradient(145deg, #8B4513 0%, #CD853F 50%, #D2691E 100%);
   border: 4px solid #FFD700;
   border-radius: 20px;
   padding: 25px;
   width: 380px;
   max-height: calc(100vh - 40px);
-  overflow-y: auto;
+  overflow-y: auto; /* allow scrolling for overflow content */
+  /* Hide scrollbars across browsers while preserving scrollability */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE 10+ */
   box-shadow:
     0 12px 24px rgba(0, 0, 0, 0.4),
     inset 0 2px 8px rgba(255, 215, 0, 0.3),
     0 0 20px rgba(255, 140, 0, 0.3);
   backdrop-filter: none;
+}
+
+/* Hide WebKit scrollbars for the left panel */
+.beer-panel::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .header-section {
@@ -233,8 +243,16 @@ body {
   border: 2px solid #FFD700;
   border-radius: 12px;
   max-height: 220px;
-  overflow-y: auto;
+  overflow-y: auto; /* keep scrolling */
+  /* Hide scrollbars visually for this list */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.beer-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .beer-list h3 {
@@ -333,20 +351,38 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
   .beer-panel {
-    width: calc(100vw - 40px);
+    width: calc(100vw - 32px);
     position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    max-height: 250px;
+    top: 8px;
+    left: 16px;
+    right: 16px;
+    padding: 16px;
+    border-width: 3px;
+    max-height: 60vh;
   }
 
   .beer-panel h1 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+  }
+
+  .settings-toggle {
+    width: 100%;
+    font-size: 1rem;
+    padding: 10px 12px;
+  }
+
+  .time-inputs {
+    flex-direction: column;
+    gap: 10px;
   }
 
   .beer-list {
-    max-height: 120px;
+    max-height: 30vh;
+  }
+
+  .current-time .time-display {
+    font-size: 0.8rem;
+    word-break: break-word;
   }
 }
 
@@ -396,24 +432,7 @@ body {
   }
   50% {
     opacity: 1;
-    transform: scale(1.02);
-  }
-}
-
-/* Beer Celebration Animation */
-.beer-panel h1::after {
-  content: "🍻";
-  display: inline-block;
-  margin-left: 10px;
-  animation: beer-clink 1.5s ease-in-out infinite;
-}
-
-@keyframes beer-clink {
-  0%, 100% {
-    transform: rotate(-5deg);
-  }
-  50% {
-    transform: rotate(5deg);
+    transform: scale(1.5);
   }
 }
 
@@ -447,5 +466,44 @@ body {
   }
   100% {
     opacity: 1;
+  }
+}
+
+/* Mobile panel toggle button */
+.panel-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .panel-toggle {
+    display: block;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    border: 2px solid #FFD700;
+      padding: 0;
+    background: linear-gradient(145deg, #FFD700 0%, #FFA500 100%);
+    color: #654321;
+    font-weight: bold;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+    z-index: 1100; /* above panel */
+  }
+
+  /* Smooth slide for panel when collapsing */
+  .beer-panel {
+    transition: transform 0.3s ease-in-out, opacity 0.2s ease-in-out;
+  }
+  .beer-panel.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .beer-panel.collapsed {
+    transform: translateX(calc(-100% - 24px));
+    opacity: 0.98;
+    pointer-events: none;
   }
 }

@@ -124,6 +124,19 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [nearestCity, setNearestCity] = useState<string>('')
+  // Panel open/close (collapsed on mobile by default)
+  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(() => (typeof window !== 'undefined' ? window.innerWidth > 768 : true))
+
+  // Keep panel open on desktop widths; start collapsed on mobile
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 768) {
+        setIsPanelOpen(true)
+      }
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const getTimeInTimezone = (timezone: string): Date => {
     return new Date(new Date().toLocaleString("en-US", {timeZone: timezone}))
@@ -258,6 +271,8 @@ function App() {
         el.style.pointerEvents = 'auto'
         el.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)'
         el.style.filter = d.isInRange ? 'drop-shadow(0 0 8px #ffb000)' : 'none'
+        // Ensure globe markers are below UI panels
+        el.style.zIndex = '0'
         if (d.shouldBlink) {
           el.style.animation = 'blink 1s steps(1, end) infinite'
         } else {
@@ -340,7 +355,14 @@ function App() {
 
   return (
     <div className="app beer-theme">
-      <div className="info-panel beer-panel">
+      <button
+        className="panel-toggle"
+        aria-label="Toggle panel"
+        onClick={() => setIsPanelOpen(prev => !prev)}
+      >
+        {isPanelOpen ? '◀' : '▶'}
+      </button>
+      <div className={`info-panel beer-panel ${isPanelOpen ? 'open' : 'collapsed'}`}>
         <div className="header-section">
           <h1>4 uur tracker</h1>
           {nearestCity && (
