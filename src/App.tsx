@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Globe from 'globe.gl'
+import * as THREE from 'three'
 import './App.css'
 
 interface CountryData {
@@ -274,7 +275,7 @@ function App() {
         // Ensure globe markers are below UI panels
         el.style.zIndex = '0'
         if (d.shouldBlink) {
-          el.style.animation = 'blink 1s steps(1, end) infinite'
+          el.style.animation = 'blink 1s steps(1, end) infinite, spin-zoom 1.8s linear infinite'
         } else {
           el.style.animation = ''
         }
@@ -285,6 +286,125 @@ function App() {
 
     globe(globeEl.current)
     globeRef.current = globe
+
+    // ===== Add orbiting satellite (Hertog Jan beer crate) and moon (bitterbal) =====
+    const scene: THREE.Scene | undefined = (globe as any).scene && (globe as any).scene()
+    const pivots: { crate: THREE.Group, moon: THREE.Group } = {
+      crate: new THREE.Group(),
+      moon: new THREE.Group()
+    }
+
+    // Helper: create a beer crate sprite from provided image in /public. Falls back to canvas if load fails.
+    const createCrateSpriteCanvas = () => {
+      const size = 256
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')!
+
+      // Background crate (fallback)
+      ctx.fillStyle = '#1b1b1b'
+      ctx.fillRect(0, 0, size, size)
+      ctx.fillStyle = '#d4aa00'
+      ctx.lineWidth = 16
+      ctx.strokeRect(8, 8, size - 16, size - 16)
+
+      // Slats
+      ctx.strokeStyle = '#7a5b00'
+      ctx.lineWidth = 8
+      for (let i = 1; i <= 3; i++) {
+        const y = (i * size) / 4
+        ctx.beginPath()
+        ctx.moveTo(24, y)
+        ctx.lineTo(size - 24, y)
+        ctx.stroke()
+      }
+
+      // HJ text (stylized)
+      ctx.fillStyle = '#ffd100'
+      ctx.font = 'bold 120px serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('HJ', size / 2, size / 2)
+
+      const texture = new THREE.CanvasTexture(canvas)
+      texture.needsUpdate = true
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true })
+      const sprite = new THREE.Sprite(material)
+      const scale = 14
+      sprite.scale.set(scale, scale, 1)
+      return sprite
+    }
+
+    const createCrateSpriteFromImage = (onReady: (sprite: THREE.Sprite) => void) => {
+      const textureUrl = `${import.meta.env.BASE_URL}Hertog_Jan_Krat_24x300ml_8710956101158.png`
+      const loader = new THREE.TextureLoader()
+      loader.load(
+        textureUrl,
+        (tex) => {
+          try {
+            ;(tex as any).colorSpace = (THREE as any).SRGBColorSpace ?? (THREE as any).sRGBEncoding
+          } catch {}
+          tex.needsUpdate = true
+          const material = new THREE.SpriteMaterial({ map: tex, transparent: true })
+          const sprite = new THREE.Sprite(material)
+          const scale = 18 // slightly larger for the real image asset
+          sprite.scale.set(scale, scale, 1)
+          onReady(sprite)
+        },
+        undefined,
+        (err) => {
+          console.warn('Failed to load crate texture, using canvas fallback', err)
+          onReady(createCrateSpriteCanvas())
+        }
+      )
+    }
+
+    // Bitterbal sphere
+    const createBitterbal = () => {
+      const geom = new THREE.SphereGeometry(6, 24, 24)
+      const mat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 1, metalness: 0 })
+      const mesh = new THREE.Mesh(geom, mat)
+      // subtle bump via vertex colors/random normal could be overkill; keep simple
+      return mesh
+    }
+
+    if (scene) {
+      // Add a soft light so our objects are visible
+      const light = new THREE.PointLight(0xffd27a, 1, 1000)
+      light.position.set(200, 120, 180)
+      scene.add(light)
+
+      // Crate satellite (load image sprite asynchronously)
+      const crateRadius = 140 // just above globe (~100 default)
+      createCrateSpriteFromImage((crate) => {
+        crate.position.set(crateRadius, 0, 0)
+        pivots.crate.add(crate)
+      })
+      scene.add(pivots.crate)
+
+      // Bitterbal moon
+      const moon = createBitterbal()
+      const moonRadius = 220
+      moon.position.set(moonRadius, 0, 0)
+      pivots.moon.add(moon)
+      scene.add(pivots.moon)
+
+      // Save to ref for cleanup
+      ;(globe as any).__beerPivots = pivots
+    }
+
+    // Animation loop: rotate pivots at different speeds
+    let rafId: number
+    const animate = () => {
+      rafId = requestAnimationFrame(animate)
+      pivots.crate.rotation.y += 0.01 // faster orbit
+      pivots.moon.rotation.y += 0.004 // slower, farther
+      // add slight tilt for some dynamism
+      pivots.crate.rotation.x = 0.2
+      pivots.moon.rotation.x = 0.1
+    }
+    animate()
 
     setTimeout(() => {
       if (globe.controls && globe.controls()) {
@@ -315,6 +435,16 @@ function App() {
 
     return () => {
       window.removeEventListener('resize', handleResize)
+      // cleanup orbits
+      cancelAnimationFrame(rafId)
+      try {
+        const s: any = (globe as any).scene && (globe as any).scene()
+        const pv = (globe as any).__beerPivots as typeof pivots | undefined
+        if (s && pv) {
+          s.remove(pv.crate)
+          s.remove(pv.moon)
+        }
+      } catch {}
       if (globeEl.current) {
         globeEl.current.innerHTML = ''
       }
