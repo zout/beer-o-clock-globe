@@ -41,7 +41,7 @@ body {
   position: absolute;
   top: 20px;
   left: 20px;
-  z-index: 10;
+  z-index: 1000;
   background: linear-gradient(145deg, #8B4513 0%, #CD853F 50%, #D2691E 100%);
   border: 4px solid #FFD700;
   border-radius: 20px;
